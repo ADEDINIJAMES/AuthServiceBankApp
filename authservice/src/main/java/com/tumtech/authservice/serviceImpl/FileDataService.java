@@ -25,16 +25,16 @@ public class FileDataService {
         this.fileDataRespository = fileDataRespository;
     }
 
-    public String upload (MultipartFile file) throws IOException {
+    public FileData upload (MultipartFile file) throws IOException {
      FileData fileData = new FileData();
      fileData.setName(file.getOriginalFilename());
      fileData.setType(file.getContentType());
      fileData.setImageData(PictureUpload.compressfile(file.getBytes()));
     FileData savedFileData = imageDataRepository.save(fileData);
      if(savedFileData != null){
-         return "file saved successfully";
+         return fileData;
      }
-     return "error occured";
+return null;
     }
 
     public byte [] downloadFile (String fileName){

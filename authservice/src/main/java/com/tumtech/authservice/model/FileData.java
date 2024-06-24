@@ -19,6 +19,16 @@ public class FileData {
     @Column(name = "imageData", length = 1000)
     private  byte[] imageData;
 
+    public static String Error_Messsage = "ERROR IN FILE UPLOAD";
+
+    public static String getError_Messsage() {
+        return Error_Messsage;
+    }
+
+    public static void setError_Messsage(String error_Messsage) {
+        Error_Messsage = error_Messsage;
+    }
+
     public String getName() {
         return name;
     }
@@ -60,4 +70,5 @@ public class FileData {
     public void setId(Long id) {
         this.id = id;
     }
+
 }
