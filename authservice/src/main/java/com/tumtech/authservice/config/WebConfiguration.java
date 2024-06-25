@@ -60,7 +60,7 @@ return source;
         return httpSecurity
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(httpRequests -> httpRequests
-                                .requestMatchers("http").permitAll()
+                                .requestMatchers("/api/v1/auth/**").permitAll()
                                 .requestMatchers("http").authenticated())
                 .logout(logout-> logout.deleteCookies("remove").invalidateHttpSession(true)
 

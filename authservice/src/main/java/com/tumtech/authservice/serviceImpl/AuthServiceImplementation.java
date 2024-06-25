@@ -1,14 +1,24 @@
 package com.tumtech.authservice.serviceImpl;
 
+import com.tumtech.authservice.dto.ApiResponse;
+import com.tumtech.authservice.dto.LoginRequest;
 import com.tumtech.authservice.dto.UserDto;
 import com.tumtech.authservice.enums.Roles;
+import com.tumtech.authservice.exception.UserNameNotFoundException;
 import com.tumtech.authservice.model.Users;
 import com.tumtech.authservice.repository.UserRepository;
 import com.tumtech.authservice.service.AuthService;
+import com.tumtech.authservice.util.JwtAuthenticationFilter;
+import com.tumtech.authservice.util.JwtUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +34,7 @@ public class AuthServiceImplementation implements AuthService {
     private UserRepository userRepository;
     private PasswordEncoder passwordEncoder;
     private FileDataService fileDataService;
+    private JwtUtils jwtUtils;
 @Autowired
     public AuthServiceImplementation(UserRepository userRepository,FileDataService fileDataService, PasswordEncoder passwordEncoder){
 this.userRepository = userRepository;
@@ -59,7 +70,7 @@ if(users!=null && !users.getEnabled()){
         Users savedUser = userRepository.save(users1);
         return "User Registration Successful";
     }
-    return "Password and confirm password not the same"
+    return "Password and confirm password not the same";
 }
 return " user already registered";
 }
@@ -83,13 +94,65 @@ return " user already registered";
     }
 
     @Override
-    public Page<Users> getAllUsers(int pagesize, int pageNo, String sortParam) {
-String[] sortParams = Sort.
 
-
-        Page<Users> getAllUsers = userRepository.getAllUsers();
-
+    public Page<Users> getAllUsers(int pageSize, int pageNo, String sortParam) {
+    try {
+        String[] sortParams = sortParam.split(",");
+        Sort sort = Sort.by(sortParams[0]);
+        if (sortParams.length == 2) {
+            sort = sortParams[0].equalsIgnoreCase("asc") ? sort.ascending() : sort.descending();
+        }
+        Pageable pageable = PageRequest.of(pageNo, pageSize, sort);
+//        Page<Users> getAllUsers = userRepository.getAllUsers();
+        return userRepository.findAll(pageable);
+    }catch (Exception e){
+        e.printStackTrace();
+        throw new UsernameNotFoundException(e.getMessage());
     }
 
+    }
+public ApiResponse Login (LoginRequest loginRequest){
+    /*
+    # fill form
+    #checks if user exists
+    #checks if user is enabled
+    #checks if password is correct
+    #checks if password is correct
+    Then returns response
+     */
+    if (loginRequest!=null){
+        if(userRepository.existsByEmail(loginRequest.getUsername())) {
+            Users user = userRepository.findByEmail(loginRequest.getUsername()).orElseThrow(()-> new UserNameNotFoundException("user not found"));
+        if(user.getEnabled()){
+           if( passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())){
+               return new ApiResponse("Login successful", "200",jwtUtils.createJwt.apply(user));
+           };
+           return new ApiResponse("Username or password not correct","403",null);
+        }
+        return new ApiResponse("Check your email for Validation message","403", null);
+        }
+       return new ApiResponse("You don't have an account; create one", "403", null);
+    }
+    return new ApiResponse("Give your login details", "403", null);
+}
+/*
+#is the user logged in
+#fetch from security context
+#delete from security context
+*/
+
+public  ApiResponse logout (HttpServletRequest request ){
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+if(authentication!=null){
+    SecurityContextHolder.getContext().setAuthentication(null);
+    SecurityContextHolder.clearContext();
+    request.getSession().invalidate();
+    if(SecurityContextHolder.getContext().getAuthentication()==null) {
+        return new ApiResponse("Logout successful","200",null);
+    }
+
+}
+return new ApiResponse("You are not logged in", "404", null);
+}
 
 }
