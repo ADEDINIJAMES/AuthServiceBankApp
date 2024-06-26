@@ -27,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class AuthServiceImplementation implements AuthService {
@@ -48,32 +49,70 @@ this.passwordEncoder = passwordEncoder;
         return userRepository.findByEmail(username).orElseThrow(()-> new UsernameNotFoundException("User not found"));
     }
 
-public String register (UserDto userDto, MultipartFile file) throws IOException {
-        Users users = userRepository.findByEmail(userDto.getEmail()).orElseThrow(()-> new UsernameNotFoundException("user not found"));
+//public String register (UserDto userDto) throws IOException {
+//        Users users = userRepository.findByEmail(userDto.getEmail()).orElseThrow(()-> new UsernameNotFoundException("user not found"));
+//
+//if(users!=null && !users.getEnabled()){
+//    return "check your email for confirmation";
+//} else if (users == null){
+//    Users users1 = new Users();
+//    users1.setUserRoles(Roles.CUSTOMER);
+//    users1.setDob(userDto.getDob());
+//    users1.setPhone(userDto.getPhone());
+//    users1.setEmail(userDto.getEmail());
+//    users1.setFirstName(userDto.getFirstName());
+//    users1.setGender(userDto.getGender());
+//    users1.setLastName(userDto.getLastName());
+//    users1.setOtherName(userDto.getOtherName());
+//    users1.setPassword(passwordEncoder.encode(userDto.getPassword()));
+//    users1.setEnabled(false);
+////    users1.setProfilepic(fileDataService.upload(file));
+//    if(Objects.equals(userDto.getPassword(), userDto.getConfirmPassword())) {
+//        Users savedUser = userRepository.save(users1);
+//        return "User Registration Successful";
+//    }
+//    return "Password and confirm password not the same";
+//}
+//return " user already registered";
+//}
 
-if(users!=null && !users.getEnabled()){
-    return "check your email for confirmation";
-} else if (users == null){
-    Users users1 = new Users();
-    users1.setUserRoles(Roles.CUSTOMER);
-    users1.setDob(userDto.getDob());
-    users1.setPhone(userDto.getPhone());
-    users1.setEmail(userDto.getEmail());
-    users1.setFirstName(userDto.getFirstName());
-    users1.setGender(userDto.getGender());
-    users1.setLastName(userDto.getLastName());
-    users1.setOtherName(userDto.getOtherName());
-    users1.setPassword(passwordEncoder.encode(userDto.getPassword()));
-    users1.setEnabled(false);
-    users1.setProfilepic(fileDataService.upload(file));
-    if(Objects.equals(userDto.getPassword(), userDto.getConfirmPassword())) {
-        Users savedUser = userRepository.save(users1);
-        return "User Registration Successful";
+    public ApiResponse register(UserDto userDto) throws IOException {
+        // Find user by email
+        Optional<Users> optionalUser = userRepository.findByEmail(userDto.getEmail());
+
+        // Check if user already exists
+        if (optionalUser.isPresent()) {
+            Users users = optionalUser.get();
+            if (!users.getEnabled()) {
+                return  new ApiResponse("Check your email for confirmation", "200", null);
+            }
+            return new ApiResponse("User already registered","200",null);
+        }
+
+        // Create new user
+        if (userDto.getPassword().equals(userDto.getConfirmPassword())) {
+            Users newUser = new Users();
+            newUser.setUserRoles(Roles.CUSTOMER);
+            newUser.setDob(userDto.getDob());
+            newUser.setPhone(userDto.getPhone());
+            newUser.setEmail(userDto.getEmail());
+            newUser.setFirstName(userDto.getFirstName());
+            newUser.setGender(userDto.getGender());
+            newUser.setLastName(userDto.getLastName());
+            newUser.setOtherName(userDto.getOtherName());
+            newUser.setPassword(passwordEncoder.encode(userDto.getPassword()));
+            newUser.setEnabled(false);
+            // newUser.setProfilepic(fileDataService.upload(file)); // Uncomment and use this line if file upload is needed
+
+            userRepository.save(newUser);
+            return new ApiResponse("User registration successful", "201","user name is "+ newUser.getEmail() );
+
+        } else {
+            return new ApiResponse("Password and confirm password do not match", "403", null);
+        }
     }
-    return "Password and confirm password not the same";
-}
-return " user already registered";
-}
+
+
 
     @Override
     public UserDto getUser(Long id) {

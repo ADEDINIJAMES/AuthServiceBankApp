@@ -26,11 +26,11 @@ public class AuthController {
     }
 
     @PostMapping("/")
-    public ResponseEntity<String> register (@RequestBody UserDto userDto,
-                                            @RequestParam(name = "profile", required = false)
-                                                    MultipartFile file
+    public ResponseEntity<ApiResponse> register (@RequestBody UserDto userDto
+//                                            @RequestParam(name = "profile", required = false)
+//                                                    MultipartFile file
                                             ) throws IOException {
-        return ResponseEntity.ok(authService.register(userDto,file));
+        return ResponseEntity.ok(authService.register(userDto));
 
     }
     @GetMapping("/")
