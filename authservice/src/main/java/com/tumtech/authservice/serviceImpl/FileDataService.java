@@ -18,7 +18,7 @@ import java.util.Optional;
 public class FileDataService {
     private final ImageDataRepository imageDataRepository;
   private FileDataRespository fileDataRespository;
-    private final String FOLDER_PATH = "src/main/resources/filesUploadStorage";
+    private final String FOLDER_PATH = "fileUploadStorage/";
     @Autowired
     public FileDataService(ImageDataRepository imageDataRepository, FileDataRespository fileDataRespository){
         this.imageDataRepository = imageDataRepository;
@@ -37,12 +37,12 @@ public class FileDataService {
 return null;
     }
 
-    public byte [] downloadFile (String fileName){
-        FileData fileDB = imageDataRepository.findByName(fileName).orElseThrow(()-> new RuntimeException("not found"));
+    public byte [] downloadFile (Long id){
+        FileData fileDB = imageDataRepository.findById(id).orElseThrow(()-> new RuntimeException("not found"));
         return PictureUpload.decompressImage(fileDB.getImageData());
     }
 
-    public String uploadImageToFileSystem (MultipartFile file) throws IOException {
+    public ImageData uploadImageToFileSystem (MultipartFile file) throws IOException {
         if (file != null) {
             String filePath = FOLDER_PATH + file.getOriginalFilename();
             ImageData fileData = new ImageData();
@@ -50,10 +50,9 @@ return null;
             fileData.setType(file.getContentType());
             fileData.setName(file.getOriginalFilename());
             file.transferTo(new File(filePath));
-            ImageData savedImagedata = fileDataRespository.save(fileData);
-           if(savedImagedata!= null){
-               return "file saved successfully"+ filePath;
-           }
+
+            return fileDataRespository.save(fileData);
+
         }
         return null;
     }

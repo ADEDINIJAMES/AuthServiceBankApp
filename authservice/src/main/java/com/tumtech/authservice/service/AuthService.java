@@ -14,8 +14,8 @@ import java.io.IOException;
 import java.util.List;
 
 public interface AuthService extends UserDetailsService {
-    ApiResponse register (UserDto userDto) throws IOException;
-    UserDto getUser (Long id);
+    ApiResponse register (UserDto userDto, MultipartFile file) throws IOException;
+    UserDto getUser (Long id) throws IOException;
     Page<Users> getAllUsers(int pageSize, int pageNo, String sortParam);
      ApiResponse Login (LoginRequest loginRequest);
       ApiResponse logout (HttpServletRequest request );

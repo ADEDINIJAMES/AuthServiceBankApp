@@ -45,7 +45,7 @@ public class FileData {
         this.type = type;
     }
 
-    public byte[] getImageData() {
+    public byte[] getImageData( ) {
         return imageData;
     }
 

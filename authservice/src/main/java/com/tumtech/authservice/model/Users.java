@@ -166,6 +166,10 @@ public class Users implements UserDetails {
         return phone;
     }
 
+    public void setProfilepics(ImageData profilepics) {
+        this.profilepics = profilepics;
+    }
+
     public LocalDate getDob() {
         return dob;
     }

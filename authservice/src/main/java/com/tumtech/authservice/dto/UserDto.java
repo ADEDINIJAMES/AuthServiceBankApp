@@ -21,7 +21,7 @@ public class UserDto {
     private String password;
     private String confirmPassword;
     private String gender;
-    private FileData profilepic;
+    private byte[] profilepic;
     private String otherName;
 
     public Roles getUserRoles() {
@@ -120,11 +120,11 @@ public class UserDto {
         this.gender = gender;
     }
 
-    public FileData getProfilepic() {
+    public byte[] getProfilepic() {
         return profilepic;
     }
 
-    public void setProfilepic(FileData profilepic) {
+    public void setProfilepic(byte[] profilepic) {
         this.profilepic = profilepic;
     }
 

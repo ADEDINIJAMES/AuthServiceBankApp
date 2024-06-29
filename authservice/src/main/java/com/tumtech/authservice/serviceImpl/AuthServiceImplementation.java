@@ -5,12 +5,15 @@ import com.tumtech.authservice.dto.LoginRequest;
 import com.tumtech.authservice.dto.UserDto;
 import com.tumtech.authservice.enums.Roles;
 import com.tumtech.authservice.exception.UserNameNotFoundException;
+import com.tumtech.authservice.model.FileData;
+import com.tumtech.authservice.model.ImageData;
 import com.tumtech.authservice.model.Users;
 import com.tumtech.authservice.repository.UserRepository;
 import com.tumtech.authservice.service.AuthService;
 import com.tumtech.authservice.util.JwtAuthenticationFilter;
 import com.tumtech.authservice.util.JwtUtils;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,7 +28,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.awt.*;
 import java.io.IOException;
+import java.sql.Connection;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -76,7 +81,7 @@ this.passwordEncoder = passwordEncoder;
 //return " user already registered";
 //}
 
-    public ApiResponse register(UserDto userDto) throws IOException {
+    public ApiResponse register(UserDto userDto, MultipartFile file) throws IOException {
         // Find user by email
         Optional<Users> optionalUser = userRepository.findByEmail(userDto.getEmail());
 
@@ -88,9 +93,13 @@ this.passwordEncoder = passwordEncoder;
             }
             return new ApiResponse("User already registered","200",null);
         }
+        String password = userDto.getPassword();
+        String confirmPassword = userDto.getConfirmPassword();
+        if (password == null || confirmPassword == null || !password.equals(confirmPassword)) {
+            return new ApiResponse("Password and confirm password do not match or are null", "403", null);
+        }
 
         // Create new user
-        if (userDto.getPassword().equals(userDto.getConfirmPassword())) {
             Users newUser = new Users();
             newUser.setUserRoles(Roles.CUSTOMER);
             newUser.setDob(userDto.getDob());
@@ -102,35 +111,35 @@ this.passwordEncoder = passwordEncoder;
             newUser.setOtherName(userDto.getOtherName());
             newUser.setPassword(passwordEncoder.encode(userDto.getPassword()));
             newUser.setEnabled(false);
-            // newUser.setProfilepic(fileDataService.upload(file)); // Uncomment and use this line if file upload is needed
-
+            if (file != null) {
+                ImageData imageData = fileDataService.uploadImageToFileSystem(file);
+                newUser.setProfilepics(imageData);            }
             userRepository.save(newUser);
             return new ApiResponse("User registration successful", "201","user name is "+ newUser.getEmail() );
 
-        } else {
-            return new ApiResponse("Password and confirm password do not match", "403", null);
+
         }
-    }
-
-
 
     @Override
-    public UserDto getUser(Long id) {
-    UserDto userDto = new UserDto();
-    Users users = userRepository.findById(id).orElseThrow(()-> new UsernameNotFoundException("user not found"));
-    userDto.setFirstName(users.getFirstName());
-    userDto.setLastName(users.getLastName());
-    userDto.setDob(users.getDob());
-    userDto.setOtherName(users.getOtherName());
-    userDto.setEmail(users.getEmail());
-    userDto.setUserRoles(users.getUserRoles());
-    userDto.setCreatedAt(users.getCreatedAt());
-    userDto.setGender(users.getGender());
-    userDto.setUpdated(users.getUpdated());
-    userDto.setPhone(users.getPhone());
-    userDto.setProfilepic(users.getProfilepic());
+    public UserDto getUser(Long id) throws IOException {
+        UserDto userDto = new UserDto();
+        Users users = userRepository.findById(id).orElseThrow(()-> new UsernameNotFoundException("user not found"));
+        userDto.setFirstName(users.getFirstName());
+        userDto.setLastName(users.getLastName());
+        userDto.setDob(users.getDob());
+        userDto.setOtherName(users.getOtherName());
+        userDto.setEmail(users.getEmail());
+        userDto.setUserRoles(users.getUserRoles());
+        userDto.setCreatedAt(users.getCreatedAt());
+        userDto.setGender(users.getGender());
+        userDto.setUpdated(users.getUpdated());
+        userDto.setPhone(users.getPhone());
+        byte [] file = fileDataService.downloadFileSystem(users.getProfilepic().getName());
+
+        userDto.setProfilepic(file);
         return userDto;
     }
+
 
     @Override
 
@@ -161,7 +170,7 @@ public ApiResponse Login (LoginRequest loginRequest){
      */
     if (loginRequest!=null){
         if(userRepository.existsByEmail(loginRequest.getUsername())) {
-            Users user = userRepository.findByEmail(loginRequest.getUsername()).orElseThrow(()-> new UserNameNotFoundException("user not found"));
+            Users user = userRepository.findByEmail(loginRequest.getUsername()).orElseThrow(()-> new UserNameNotFoundException("user not found", loginRequest.getUsername()));
         if(user.getEnabled()){
            if( passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())){
                return new ApiResponse("Login successful", "200",jwtUtils.createJwt.apply(user));
